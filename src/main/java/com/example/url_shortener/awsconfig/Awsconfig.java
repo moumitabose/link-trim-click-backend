@@ -1,5 +1,6 @@
 package com.example.url_shortener.awsconfig;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
@@ -14,31 +15,50 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
 import java.util.Arrays;
+import java.util.Optional;
 
 @Configuration
 @PropertySource("classpath:application.properties")
 public class Awsconfig {
 
 
+//    @Bean
+//    public DynamoDbClient dynamoDbClient() {
+//
+//        AwsCredentials credentials = ProfileCredentialsProvider.create("url-shortner-profile").resolveCredentials();
+//
+//        System.out.println("Profile being used: " + credentials.providerName());
+//        System.out.println("AWS Profile being used: " + System.getenv("AWS_PROFILE"));
+//
+//
+//
+//        System.out.println("AWS Access Key: " + credentials.accessKeyId());
+//        System.out.println("AWS Secret Key: " + credentials.secretAccessKey());
+//
+//
+//        return DynamoDbClient.builder()
+//                .region(Region.US_EAST_2)
+//                .credentialsProvider(ProfileCredentialsProvider.create("url-shortner-profile"))
+//                .build();
+//
+//    }
+
+
+    @Value("${aws.region}")
+    private String awsRegion;
+
     @Bean
     public DynamoDbClient dynamoDbClient() {
+        // Check if we're running locally or on ECS
+        boolean isLocal = Optional.ofNullable(System.getenv("AWS_EXECUTION_ENV")).isEmpty();
 
-        AwsCredentials credentials = ProfileCredentialsProvider.create("url-shortner-profile").resolveCredentials();
-
-        System.out.println("Profile being used: " + credentials.providerName());
-        System.out.println("AWS Profile being used: " + System.getenv("AWS_PROFILE"));
-
-
-
-        System.out.println("AWS Access Key: " + credentials.accessKeyId());
-        System.out.println("AWS Secret Key: " + credentials.secretAccessKey());
-
-
+        // Use builder directly, no need for separate variable
         return DynamoDbClient.builder()
-                .region(Region.US_EAST_2)
-                .credentialsProvider(ProfileCredentialsProvider.create("url-shortner-profile"))
+                .region(Region.of(awsRegion))
+                .credentialsProvider(isLocal
+                        ? ProfileCredentialsProvider.create("url-shortner-profile")
+                        : DefaultCredentialsProvider.create())
                 .build();
-
     }
 
     @Bean
